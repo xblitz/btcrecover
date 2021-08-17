@@ -4404,6 +4404,8 @@ def init_parser_common():
         parser_common.add_argument("--mkey",        action="store_true", help=argparse.SUPPRESS)  # deprecated, use --data-extract instead
         parser_common.add_argument("--privkey",     action="store_true", help=argparse.SUPPRESS)  # deprecated, use --data-extract instead
         parser_common.add_argument("--btcrseed", action="store_true",help=argparse.SUPPRESS)  # Internal helper argument
+        parser_common.add_argument("--autosave",     metavar="FILE",      help="autosave (5 min) progress to or restore it from a file")
+        parser_common.add_argument("--restore",      metavar="FILE",      help="restore progress and options from an autosave file (must be the only option on the command line)")
         parser_common.add_argument("--exclude-passwordlist", metavar="FILE", nargs="?", const="-", help="never try passwords read (exactly one per line) from this file or from stdin")
         parser_common.add_argument("--listpass",    action="store_true", help="just list all password combinations to test and exit")
         parser_common.add_argument("--performance", action="store_true", help="run a continuous performance test (Ctrl-C to exit)")
@@ -4567,8 +4569,8 @@ def parse_arguments(effective_argv, wallet = None, base_iterator = None,
     parser.add_argument("--max-tokens",   type=int, default=sys.maxsize, metavar="COUNT", help="enforce a max # of tokens included per guess")
     parser.add_argument("--min-tokens",   type=int, default=1,          metavar="COUNT", help="enforce a min # of tokens included per guess")
     parser._add_container_actions(parser_common)
-    parser.add_argument("--autosave",     metavar="FILE",      help="autosave (5 min) progress to or restore it from a file")
-    parser.add_argument("--restore",      metavar="FILE",      help="restore progress and options from an autosave file (must be the only option on the command line)")
+    #parser.add_argument("--autosave",     metavar="FILE",      help="autosave (5 min) progress to or restore it from a file")
+    #parser.add_argument("--restore",      metavar="FILE",      help="restore progress and options from an autosave file (must be the only option on the command line)")
     parser.add_argument("--passwordlist", metavar="FILE", nargs="?", const="-", help="instead of using a tokenlist, read complete passwords (exactly one per line) from this file or from stdin")
     parser.add_argument("--has-wildcards",action="store_true", help="parse and expand wildcards inside passwordlists (default: wildcards are only parsed inside tokenlists)")
 
@@ -4760,8 +4762,8 @@ def parse_arguments(effective_argv, wallet = None, base_iterator = None,
         #
         # Else if the specified file is empty or doesn't exist:
         else:
-            assert not (wallet or base_iterator or inserted_items), \
-                        '--autosave is not supported with custom parse_arguments()'
+            #assert not (wallet or base_iterator or inserted_items), \
+            #            '--autosave is not supported with custom parse_arguments()'
             if args.listpass:
                 print("Warning: --autosave is ignored with --listpass", file=sys.stderr)
             elif args.performance:
@@ -5004,11 +5006,13 @@ def parse_arguments(effective_argv, wallet = None, base_iterator = None,
     # Wallet Loading Related Arguments
     ##############################
 
-    # --bip39 is implied if any bip39 option is used
-    for action in bip39_group._group_actions:
-        if args.__dict__[action.dest]:
-            args.bip39 = True
-            break
+
+
+    # # --bip39 is implied if any bip39 option is used
+    # for action in bip39_group._group_actions:
+    #     if args.__dict__[action.dest]:
+    #         args.bip39 = True
+    #         break
 
     # --mkey and --privkey are deprecated synonyms of --data-extract
     if args.mkey or args.privkey:

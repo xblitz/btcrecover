@@ -2157,6 +2157,8 @@ def main(argv):
     if argv or "_ARGCOMPLETE" in os.environ:
         import argparse
         parser = argparse.ArgumentParser()
+        parser.add_argument("--autosave",    metavar="FILE",        help="the autosave file (periodically save progress to a file that can be easily resumed)")
+        parser.add_argument("--restore",    metavar="FILE",         help="Restore a previously saved session")
         parser.add_argument("--wallet",      metavar="FILE",        help="the wallet file")
         parser.add_argument("--wallet-type", metavar="TYPE",        help="if not using a wallet file, the wallet type")
         parser.add_argument("--mpk",         metavar="XPUB-OR-HEX", help="if not using a wallet file, the master public key (xpub, ypub or zpub)")
@@ -2248,9 +2250,6 @@ def main(argv):
             info = opencl_information()
             info.printfullinfo()
             exit(0)
-
-        if args.wallet:
-            loaded_wallet = btcrpass.load_wallet(args.wallet)
 
         if args.savevalidseeds:
             args.addrs = ['1QLSbWFtVNnTFUq5vxDRoCpvvsSqTTS88P']
@@ -2409,7 +2408,7 @@ def main(argv):
             create_from_params["force_p2sh"] = True
 
         # These arguments and their values are passed on to btcrpass.parse_arguments()
-        for argkey in "skip", "threads", "worker", "max_eta":
+        for argkey in "skip", "threads", "worker", "max_eta", "autosave", "restore", "mnemonic", "wallet_type", "addr_limit", "addrs":
             if args.__dict__[argkey] is not None:
                 extra_args.extend(("--"+argkey.replace("_", "-"), str(args.__dict__[argkey])))
 
