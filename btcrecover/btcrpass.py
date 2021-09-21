@@ -4601,7 +4601,8 @@ def init_parser_common():
         parser_common.add_argument("--btcrseed", action="store_true",help=argparse.SUPPRESS)  # Internal helper argument
         parser_common.add_argument("--exclude-passwordlist", metavar="FILE", nargs="?", const="-", help="never try passwords read (exactly one per line) from this file or from stdin")
         parser_common.add_argument("--listpass",    action="store_true", help="just list all password combinations to test and exit")
-        parser_common.add_argument("--performance", action="store_true", help="run a continuous performance test (Ctrl-C to exit)")
+        parser_common.add_argument("--performance", action="store_true", help="run a continuous performance test (Ctrl-C to exit if timeout not specified)")
+        parser_common.add_argument("--performance-timeout", type=int, default=0, metavar="SECONDS", help="Performance timeout in seconds")
         parser_common.add_argument("--pause",       action="store_true", help="pause before exiting")
         parser_common.add_argument("--possible-passwords-file", metavar="FILE", default = "possible_passwords.log", help="Specify the file to save possible close matches to. (Defaults to possible_passwords.log)")
         parser_common.add_argument("--disable-save-possible-passwords",       action="store_true", help="Disable saving possible matches to file")
@@ -7779,6 +7780,8 @@ def main():
             # TODO: print timeout estimate if not args.no_eta even
             #       if --dynamic-passwords-count is used
             print("Passwords will be counted dynamically")
+        elif args.performance:
+            print("Doing performance test for %s seconds" % (args.performance_timeout if args.performance_timeout else "unlimited"))
         elif args.no_eta:
             print("Searching for password ...")
         else:
@@ -7856,8 +7859,11 @@ def main():
     passwords_tried = 0
     if progress: progress.start()
     try:
+        start_timer = time.perf_counter()
         for password_found, passwords_tried_last in password_found_iterator:
-            if password_found:
+            if password_found or (args.performance_timeout and time.perf_counter() - start_timer > args.performance_timeout):
+                if args.performance:
+                    p_per_second = int(passwords_tried / (time.perf_counter() - start_timer))
                 if pool:
                     # Close the pool, but don't wait for (join) processes to exit gracefully on
                     # the off chance one is in an inconsistent state (otherwise the found password
@@ -7896,11 +7902,10 @@ def main():
     # other intentional shutdown, or an out-of-memory condition that can be handled), fall
     # through to the autosave, otherwise re-raise the exception.
     except BaseException as e:
+        p_per_second = int(passwords_tried / (time.perf_counter() - start_timer))
         handled = handle_oom() if isinstance(e, MemoryError) and passwords_tried > 0 else False
         if not handled: print()  # move to the next line if handle_oom() hasn't already done so
         if pool: pool.close()
-        if args.performance:  # if this was a performance test, print the rate directly so it can be captured in the STDOUT
-            print("last rate:", progress.widgets[2].update(progress))
         print("Interrupted after finishing password #", args.skip + passwords_tried, file=sys.stderr)
         if sys.stdout.isatty() ^ sys.stderr.isatty():  # if they're different, print to both to be safe
             print("Interrupted after finishing password #", args.skip + passwords_tried)
@@ -7911,12 +7916,14 @@ def main():
         if windows_handler_routine:
             SetConsoleCtrlHandler(windows_handler_routine, False)
 
+    if args.performance:
+        print("Performance Average: {:,}/s".format(p_per_second))
+
     # Autosave the final state (for all non-error cases -- we're shutting down (e.g. Ctrl-C or a
     # reboot), the password was found, or the search was exhausted -- or for handled out-of-memory)
     if l_savestate:
         do_autosave(args.skip + passwords_tried)
         autosave_file.close()
-
     worker_out_queue.close()
 
     global searchfailedtext
