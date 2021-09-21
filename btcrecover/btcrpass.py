@@ -7899,7 +7899,8 @@ def main():
         handled = handle_oom() if isinstance(e, MemoryError) and passwords_tried > 0 else False
         if not handled: print()  # move to the next line if handle_oom() hasn't already done so
         if pool: pool.close()
-
+        if args.performance:  # if this was a performance test, print the rate directly so it can be captured in the STDOUT
+            print("last rate:", progress.widgets[2].update(progress))
         print("Interrupted after finishing password #", args.skip + passwords_tried, file=sys.stderr)
         if sys.stdout.isatty() ^ sys.stderr.isatty():  # if they're different, print to both to be safe
             print("Interrupted after finishing password #", args.skip + passwords_tried)
